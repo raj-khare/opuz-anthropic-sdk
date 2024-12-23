@@ -1,11 +1,27 @@
 import { Check } from './types';
 import * as Core from './core';
+import nodeFetch from 'node-fetch';
+
+declare global {
+    var fetch: typeof nodeFetch;
+}
+
+const fetchImpl = (typeof globalThis !== 'undefined' && 'fetch' in globalThis) ? 
+    (globalThis as any).fetch.bind(globalThis) : 
+    nodeFetch;
+
+interface IRequest {
+    tools: any[];
+    system: string;
+    messages: { role: string; content: string; }[];
+}
 
 interface ITrace {
-    request: any; // TODO: fix this
-    response: any; // TODO: fix this
+    request: IRequest;
+    response: any; // TODO: type this properly with Anthropic types
     duration: number;
     checks: Check[];
+    tag?: string;
 }
 
 export default class Opuz {
@@ -21,15 +37,15 @@ export default class Opuz {
 
     getUrl(): string {
         if (Core.readEnv('NODE_ENV') === 'dev') {
-            return 'http://localhost:3000/api/process';
+            return 'https://496f-49-43-179-176.ngrok-free.app/api/trace';
         }
-        return 'https://opuz.org/api/trace';
+        return 'https://496f-49-43-179-176.ngrok-free.app/api/trace';
     }
 
     async trace(request: ITrace) {
         console.log('Tracing request:', request);
         try {
-            const response = await fetch(this.getUrl(), {
+            const response = await fetchImpl(this.getUrl(), {
                 method: 'POST',
                 headers: {
                     'x-api-key': this.apiKey,
